@@ -1,3 +1,3 @@
-import turtle_rainbow
+# import turtle_rainbow
 
-turtle_rainbow.drawRainbow(50,50,0)
+# turtle_rainbow.drawRainbow(50,50,0)
