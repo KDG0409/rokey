@@ -2,11 +2,10 @@
 
 # 0으로 이어진 영역의 개수를 세는 프로그램
 graph = [
-    [0,0,1,0,1],
-    [1,0,1,0,0],
     [0,0,1,1,0],
-    [0,1,0,0,0],
     [0,0,0,1,1],
+    [1,1,1,1,1],
+    [0,0,0,0,0],
 ]
 n = len(graph) #행 개수 (세로)
 m = len(graph[0]) #열 개수 (가로)
@@ -20,7 +19,7 @@ def dfs_stack(x,y):
             continue
 
         if graph[x][y] == 0 : #방문하지 않았을 때 해당 노드 방문처리 #if node not in visited
-            graph[x][y]=1 #visited.append(node)
+            graph[x][y] = 1 #visited.append(node)
             stack.append(((x-1),y)) #위쪽   #extend(graph[node])
             stack.append(((x+1),y)) #아래쪽
             stack.append((x,(y-1))) #왼쪽
@@ -30,7 +29,7 @@ def dfs_stack(x,y):
             # print(stack)
             # for i in graph:
             #     print(i)
-    return True
+    return True  #얼음 여부 확인을 위해 True 반환
 
 result = 0
 
