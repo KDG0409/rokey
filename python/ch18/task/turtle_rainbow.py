@@ -4,7 +4,7 @@ def drawRainbow(r,x,y):
     ct = t.Turtle()
     ct.shape("turtle")
     ct.pensize(5)
-    ct.speed(5)
+    ct.speed(0)
 
     colors = ['red','orange','yellow','green','blue','navy','purple']
 
