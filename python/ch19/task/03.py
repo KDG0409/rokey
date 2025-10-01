@@ -5,20 +5,20 @@ data = {
     'Name':['Alice','Bob','Charlie'],
     'Age':[30,35,25]
 }
-df = pd.DataFrame(data)
-print(df)
+dfx = pd.DataFrame(data)
+print(dfx)
 
 # 데이터 필터링,정렬,열추가,행추가,행삭제
 
-print(df['Age'])
-print(df[df['Age']>30])
-print(df.sort_values(by='Age'))
+print(dfx['Age'])
+print(dfx[dfx['Age']>30])
+print(dfx.sort_values(by='Age'))
 
-df['Salary'] = [50000,60000,70000]
-print(df)
-df.loc[len(df)] = [4,'David',40,80000]
-print(df)
-df=df.drop(1)
+dfx['Salary'] = [50000,60000,70000]
+print(dfx)
+dfx.loc[len(dfx)] = [4,'David',40,80000]
+print(dfx)
+df=dfx.drop(1)
 print(df)
 
 # DataFrame 행추가
