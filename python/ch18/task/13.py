@@ -26,6 +26,6 @@ def drawStar(n):
     ct.hideturtle()
 
 drawStar(5)
-turtle_rainbow.drawRainbow(200,200,0)
+drawRainbow(200,200,0)
 
 t.exitonclick()
