@@ -1,6 +1,5 @@
-import turtle_rainbow
-from turtle_rainbow import drawRainbow
 import turtle as t
+from turtle_rainbow import drawRainbow
 
 t.title("Sky")
 t.setup(700,700)
