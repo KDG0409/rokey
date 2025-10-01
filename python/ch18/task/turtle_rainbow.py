@@ -15,8 +15,8 @@ def drawRainbow(r,x,y):
         ct.pendown()
         ct.setheading(90)
         ct.circle(r,180) 
-        x += 7 # x좌표 7증가
-        r += 7 # 반지름 7증가
+        x -= 4 # x좌표 4감소
+        r -= 4 # 반지름 4감소
 
     ct.hideturtle()
 
