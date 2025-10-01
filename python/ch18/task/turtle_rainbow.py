@@ -24,5 +24,7 @@ if __name__ == "__main__":
     t.title("무지개 그리기")
     t.setup(700,700)
     t.bgcolor("skyblue")
-    drawRainbow(50,50,0)
+    drawRainbow(100,100,0)
+    drawRainbow(100,0,0)
+    drawRainbow(100,0,100)
     t.exitonclick()
