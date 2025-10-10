@@ -1,5 +1,5 @@
 import pandas as pd
-import openpyxl
+# import openpyxl
 
 df_csv = pd.read_csv("C:/rokey/python/ch19/task/data.csv")
 df_xl = pd.read_excel("C:/rokey/python/ch19/task/data.xlsx")
