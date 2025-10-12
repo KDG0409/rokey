@@ -6,7 +6,7 @@
 #     def __iter__(self):
 #         return self
 #     def __next__(self):
-#         if self.position > len(self.data):
+#         if self.position >= len(self.data):
 #             raise StopIteration
 #         result = self.data[self.position]
 #         self.position += 1
