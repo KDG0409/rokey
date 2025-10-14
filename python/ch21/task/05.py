@@ -9,8 +9,8 @@ green_lower = np.array([35,100,100])
 green_upper = np.array([85,255,255])
 
 hsv = cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
-mask = cv2.inRange(hsv,green_lower,green_upper)
-result = cv2.bitwise_and(image,image,mask=mask)
+mask1 = cv2.inRange(hsv,green_lower,green_upper)
+result = cv2.bitwise_and(image,image,mask=mask1)
 
 cv2.imshow('Green Color Filtering',result)
 cv2.waitKey(0)
