@@ -3,11 +3,11 @@ import cv2
 import matplotlib.pyplot as plt
 
 # 이미지 로드/사전학습 파일
-image = cv2.imread("C:/rokey/python/ch21/task/people.jpg")
+image = cv2.imread("C:/rokey/python/ch21/task/sample2.jpg")
 face_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 face_cascade = cv2.CascadeClassifier(face_path)
 
-resized = cv2.resize(image,(300,300))
+resized = cv2.resize(image,(700,700))
 
 # 이미지 흑백 전환
 gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
