@@ -4,10 +4,10 @@
 #4. a
 #5. b
 #6. 
-# import re
-# text = "이메일 목록: test@example.com, hello@world.net, user123@domain.org"
-# m = re.findall(r'\w+@\w+.\w+',text)
-# print(m)
+import re
+text = "이메일 목록: test@example.com, hello@world.net, user123@domain.org"
+m = re.findall(r'\w+@\w+.\w+',text)
+print(m)
 #7.
 # import re
 # text = "연락처: 010-1234-5678, 02-987-6543, 031-456-7890"
