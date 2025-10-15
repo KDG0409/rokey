@@ -25,13 +25,13 @@
 #     max.append(int(row.max()))
 # print(f"각 행의 최댓값: {max} ")
 #10.
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
-# plt.title("line graph")
-# x=list(range(1,6,1))
-# y=list(range(2,11,2))
-# plt.plot(x,y)
-# plt.xlabel("x_axis:1~5")
-# plt.ylabel("y_axis:2~10")
-# plt.grid(True)
-# plt.show()
+plt.title("line graph")
+x=list(range(1,6,1))
+y=list(range(2,11,2))
+plt.plot(x,y)
+plt.xlabel("x_axis:1~5")
+plt.ylabel("y_axis:2~10")
+plt.grid(True)
+plt.show()

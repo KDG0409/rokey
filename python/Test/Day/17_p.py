@@ -36,7 +36,7 @@ graph = [
 n = len(graph)
 m = len(graph[0])
 
-def find_ice(graph,start):
+def find_ice(x,y):
     stack=[(x,y)]
     while stack:
         x,y=stack.pop()
@@ -49,7 +49,7 @@ def find_ice(graph,start):
             stack.append((x,(y-1))) 
             stack.append((x,(y+1)))
     return True   
-
+result=0
 for i in range(n):
     for j in range(m):
         if graph[i][j] == 0 :
