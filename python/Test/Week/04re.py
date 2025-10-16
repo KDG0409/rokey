@@ -3,7 +3,8 @@ class Stack:
     def __init__(self):
         self.stack=['두산','로키','부트']
     def push(self,data):
-        return self.stack.append(data)
+        self.stack.append(data)
+        return self.stack
 ans=Stack()
 print(ans.push('캠프'))
 #2.

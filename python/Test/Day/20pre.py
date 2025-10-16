@@ -1,7 +1,7 @@
 #statsmpdels
 # import statsmodels.api as sm
 # data=sm.datasets.get_rdataset("mtcars").data
-# X=data[[]'hp','wt']]
+# X=data[['hp','wt']]
 # y=data['mpg']
 # X=sm.add_constant(X)
 # ans=sm.OLS(y,X).fit()

@@ -39,7 +39,7 @@
 #     lines=f.readlines()
 #     def myGen(lines):
 #         for line in lines:
-#             yield line
+#             yield line.strip()
 #     a = myGen(lines)
 #     print(next(a))
 #     print(next(a))
