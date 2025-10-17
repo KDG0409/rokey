@@ -1,7 +1,7 @@
 import os
 import shutil
 
-#1
+#1. txt 파일을 검색하여 리스트로 반환
 def list_text_files(folder_path):
     f_list=[]
     files=os.listdir(folder_path)
@@ -10,7 +10,7 @@ def list_text_files(folder_path):
             f_list.append(file)
     return f_list
 
-#2
+#2. txt 파일을 찾아 다른 폴더로 복사
 def copy_text_file(source_folder,destination_folder):
     if not os.path.exists(destination_folder):
         os.makedirs(destination_folder)
@@ -19,7 +19,7 @@ def copy_text_file(source_folder,destination_folder):
                     os.path.join(destination_folder,file))
         print("copy_file")
 
-#3
+#3. txt 파일을 찾아 다른 폴더로 이동
 def move_text_file(source_folder,destination_folder):
     if not os.path.exists(destination_folder):
         os.makedirs(destination_folder)
@@ -27,13 +27,13 @@ def move_text_file(source_folder,destination_folder):
         shutil.move(os.path.join(source_folder,file),
                     os.path.join(destination_folder,file))
         print("move_file")
-#4.
+#4. txt 파일을 찾아 삭제
 def del_text_file(source_folder):
     for file in list_text_files(source_folder):
         shutil.rmtree(os.path.join(source_folder,file))
     print("del_file")
 
-#5
+#5. 함수를 호출
 if __name__=="__main__":
     folder = "./python/ch22/task/folder1"
     source = "./python/ch22/task/folder1"
