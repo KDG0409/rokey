@@ -9,10 +9,10 @@ iris = sns.load_dataset("iris")
 sns.set_theme(style="whitegrid",palette='muted')
 
 # 산점도
-# sns.set_palette('pastel')
-# sns.scatterplot(data=iris,x='sepal_length',y='sepal_width',hue='species',style='species')
-# plt.title("Scatter Plot Example")
-# plt.show()
+sns.set_palette('pastel')
+sns.scatterplot(data=iris,x='sepal_length',y='sepal_width',hue='species',style='species')
+plt.title("Scatter Plot Example")
+plt.show()
 
 # 선형회귀선
 # sns.lmplot(data=iris,x='sepal_length',y='sepal_width',hue='species',height=6)
@@ -40,7 +40,7 @@ sns.set_theme(style="whitegrid",palette='muted')
 
 # 복합 그래프 작성 (서브플롯)
 
-g = sns.FacetGrid(iris, col="species", height=4, aspect=1)
-g.map_dataframe(sns.histplot, x="sepal_length", kde=True)
-g.set_titles(col_template="{col_name}")
-plt.show()
+# g = sns.FacetGrid(iris, col="species", height=4, aspect=1)
+# g.map_dataframe(sns.histplot, x="sepal_length", kde=True)
+# g.set_titles(col_template="{col_name}")
+# plt.show()
