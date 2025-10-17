@@ -38,6 +38,8 @@ for i in range(len(cities)):
 # print("")
 
 plt.rcParams["font.family"]="Malgun Gothic"
+plt.rcParams['axes.unicode_minus'] =False
+
 plt.scatter(cities, temp_min_list, color='blue',label='최저 기온', s=100, marker='o')
 plt.title('도시별 최저 기온')
 plt.xlabel('도시')
