@@ -30,7 +30,7 @@ else:
     
     with open(path,'w',encoding='utf-8') as f:
         data_list={}
-        class_name=[]
+        class_name = []
         for i in range(len(class_list)):
             f.write(class_list[i])
             f.write(name_list[i])
