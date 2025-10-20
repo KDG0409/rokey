@@ -37,9 +37,9 @@ else:
             data_list[class_list[i][:1]]=name_list[i][:3]
     with open("./python/week05/config.json", "w",encoding='UTF-8') as f:
         json.dump(data_list, f,ensure_ascii=False, indent=4)
-    with open("./python/week05/config.json", "r",encoding='UTF-8') as f:
+    with open("./python/week05/config.json","r",encoding='UTF-8') as f:
         loaded_data = json.load(f)     
-        print(loaded_data)
+        print(loaded_data) 
 
     
 
