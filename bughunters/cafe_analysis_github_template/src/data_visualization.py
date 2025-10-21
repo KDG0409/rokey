@@ -23,7 +23,7 @@ def plot_top_dongs_bar(top_dongs, year):
     plt.show()
 
 def plot_heatmap(df):
-    plt.rcParams['font.family'] = 'Malgun Gothic'
+    plt.rcParams['font.family'] ='Malgun Gothic'
     plt.figure(figsize=(12,10))
     sns.heatmap(df, cmap="YlGnBu", linewidths=0.5)
     plt.title('동별 연도별 인구 히트맵')
