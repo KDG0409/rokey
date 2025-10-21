@@ -1,0 +1,29 @@
+import turtle as t
+from turtle_rainbow import drawRainbow
+
+t.title("Sky")
+t.setup(700,700)
+t.bgcolor('skyblue')
+
+def drawStar(n):
+    ct = t.Turtle()
+    ct.pensize(3)
+    ct.speed(0)
+    colors = ['red','yellow','blue','green','purple']
+
+    for i in range(n):
+        ct.pencolor(colors[i])
+        ct.penup()
+        ct.setheading(90)
+        ct.goto(80*i-160,200)
+        ct.pendown()
+        for j in range(5):
+            ct.forward(100)
+            ct.right(144)
+            
+    ct.hideturtle()
+
+drawStar(5)
+drawRainbow(200,200,0)
+
+t.exitonclick()
