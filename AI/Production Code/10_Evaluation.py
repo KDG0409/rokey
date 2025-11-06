@@ -17,7 +17,7 @@ from sklearn.metrics import (
     roc_curve, auc,
     precision_recall_fscore_support
 )
-from sklearn.preprocessing import label_binarize
+from sklearn.preprocessing import label_binarize # 이진화라벨링
 from collections import Counter
 
 # 재현성 설정
