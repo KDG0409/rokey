@@ -117,8 +117,8 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device): # 한 에�
         optimizer.step()  # 가중치 업데이트
 
         # 통계 업데이트
-        running_loss += loss.item() * inputs.size(0)
-        _, predicted = outputs.max(1)  # 예측값
+        running_loss += loss.item() * inputs.size(0) # 평균 손실과 배치 사이즈의 곱
+        _, predicted = outputs.max(1)  # 예측값(인덱스)
         total += labels.size(0)
         correct += predicted.eq(labels).sum().item()
 
@@ -128,7 +128,7 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device): # 한 에�
 
     return epoch_loss, epoch_acc
 
-def evaluate_model(model, dataloader, criterion, device): # 평가 함수
+def evaluate_model(model, dataloader, criterion, device): # 평가 함수 매우 중요
     model.eval()  # 평가 모드로 전환
 
     running_loss = 0.0
@@ -216,6 +216,7 @@ optimizer_partial = optim.Adam( # layer4 + fc만 최적화
     lr=learning_rate
 )
 
+print(f'학습 가능한 파라미터 수: {sum(p.numel() for p in model_partial.parameters() if p.requires_grad):,}')
 history_partial = {'train_loss': [], 'train_acc': [], 'test_acc': []}
 start_time = time.time()
 
@@ -242,19 +243,20 @@ elapsed_time_partial = time.time() - start_time
 print(f'\n학습 완료! 소요 시간: {elapsed_time_partial:.2f}초')
 print(f'최종 테스트 정확도: {history_partial["test_acc"][-1]:.2f}%')
 
-# Full Fine-tuning (모든 층 학습)
-model_full = models.resnet18(pretrained=True)
+# Full Fine-tuning (모든 층 학습)/ 시험기출(중요)
+model_full = models.resnet18(pretrained=True) # 시험기출(중요)
 
-for param in model_full.parameters():
+for param in model_full.parameters(): # 시험기출(중요)
     param.requires_grad = True  # 모든 층 학습 가능
 
-model_full.fc = nn.Linear(model_full.fc.in_features, num_classes)
-model_full = model_full.to(device)
+model_full.fc = nn.Linear(model_full.fc.in_features, num_classes) # 시험기출(중요)
+model_full = model_full.to(device) # 시험기출(중요)
 
-optimizer_full = optim.Adam(model_full.parameters(), lr=learning_rate * 0.1)  # 학습률 낮춤
+optimizer_full = optim.Adam(model_full.parameters(), lr=learning_rate * 0.1)  # 학습률 낮춤/ 시험기출(중요)
 
 history_full = {'train_loss': [], 'train_acc': [], 'test_acc': []}
 start_time = time.time()
+
 for epoch in range(num_epochs):
     # 한 에폭 학습
     train_loss, train_acc = train_one_epoch(model_full, train_loader,
