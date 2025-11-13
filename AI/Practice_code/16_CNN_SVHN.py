@@ -170,7 +170,8 @@ for ep in range(1, EPOCHS+1):                    # 에폭 반복
     te_loss, te_acc = evaluate(seq_model, test_loader, criterion)
     tr_hist.append((tr_loss, tr_acc))
     te_hist.append((te_loss, te_acc))
-    print(f"[Sequential] Epoch {ep}/{EPOCHS} | train {tr_acc:.3f}/{tr_loss:.3f} | test {te_acc:.3f}/{te_loss:.3f}")
+    print(f"[Sequential] Epoch {ep}/{EPOCHS} | train {tr_acc:.3f}/{tr_loss:.
+                                                                   3f} | test {te_acc:.3f}/{te_loss:.3f}")
 
 # 정확도 곡선
 plt.figure(); plt.plot([a for _,a in tr_hist], label='train acc'); plt.plot([a for _,a in te_hist], label='test acc')
