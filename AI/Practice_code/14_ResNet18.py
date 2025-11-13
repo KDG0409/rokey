@@ -117,12 +117,12 @@ def setup_training(model, lr=0.001, momentum=0.9, num_epochs=20): # 학습 설�
         model.parameters(),
         lr=lr,
         momentum=momentum,
-        weight_decay=1e-4  # L2 정규화
+        weight_decay=1e-4  # L2 정규화 
     )
 
     # 학습률 스케줄러 (CosineAnnealingLR)
     # T_max: 학습률이 최솟값에 도달하는 에폭 수
-    scheduler = CosineAnnealingLR(
+    scheduler = CosineAnnealingLR( # 학습률을 cosine 처럼 부드럽게 감소시킴
         optimizer,
         T_max=num_epochs,
         eta_min=1e-6  # 최소 학습률
@@ -130,7 +130,7 @@ def setup_training(model, lr=0.001, momentum=0.9, num_epochs=20): # 학습 설�
 
     return criterion, optimizer, scheduler
 
-class EarlyStopping: # Early Stopping 클래스
+class EarlyStopping: # Early Stopping 클래스 보통 복사해서 사용함
     def __init__(self, patience=5, delta=0.0, path='best_model.pth'):
         """
         Args:
@@ -152,7 +152,7 @@ class EarlyStopping: # Early Stopping 클래스
         if self.best_score is None:
             # 첫 번째 에폭
             self.best_score = score
-            self.save_checkpoint(val_loss, model)
+            self.save_checkpoint(val_loss, model) # 중간 저장 값
         elif score < self.best_score + self.delta:
             # 개선이 없는 경우
             self.counter += 1
@@ -162,7 +162,7 @@ class EarlyStopping: # Early Stopping 클래스
         else:
             # 개선된 경우
             self.best_score = score
-            self.save_checkpoint(val_loss, model)
+            self.save_checkpoint(val_loss, model) # 중간 저장 값
             self.counter = 0
 
     def save_checkpoint(self, val_loss, model):
@@ -201,7 +201,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device):
         correct += (predicted == labels).sum().item()
 
         # 진행 상태 업데이트
-        pbar.set_postfix({'loss': loss.item(), 'acc': 100 * correct / total})
+        pbar.set_postfix({'loss': loss.item(), 'acc': 100 * correct / total}) # 보정 값 적용
 
     epoch_loss = running_loss / total
     epoch_acc = 100 * correct / total
@@ -327,7 +327,53 @@ def plot_confusion_matrix(y_true, y_pred, class_names): # 혼동 행렬 시각�
     for i, (name, acc) in enumerate(zip(class_names, class_accuracy)):
         print(f'{name:12s}: {acc:6.2f}%')
     print('=' * 40)
-    
+
+# 샘플 예측 시각화
+def visualize_predictions(model, loader, class_names, device, num_images=16):
+    model.eval()
+
+    # 데이터 가져오기
+    dataiter = iter(loader)
+    images, labels = next(dataiter)
+    images = images[:num_images]
+    labels = labels[:num_images]
+
+    # 예측
+    with torch.no_grad():
+        outputs = model(images.to(device))
+        _, predicted = torch.max(outputs, 1)
+        predicted = predicted.cpu()
+
+    # 이미지 역정규화
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+    images = images * std + mean
+    images = torch.clamp(images, 0, 1)
+
+    # 시각화
+    fig, axes = plt.subplots(4, 4, figsize=(12, 12))
+    axes = axes.ravel()
+
+    for idx in range(num_images):
+        img = images[idx].permute(1, 2, 0).numpy()
+        true_label = class_names[labels[idx]]
+        pred_label = class_names[predicted[idx]]
+
+        # 올바른 예측은 파란색, 잘못된 예측은 빨간색
+        color = 'blue' if labels[idx] == predicted[idx] else 'red'
+
+        axes[idx].imshow(img)
+        axes[idx].set_title(
+            f'True: {true_label}\nPred: {pred_label}',
+            color=color,
+            fontsize=10,
+            fontweight='bold'
+        )
+        axes[idx].axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
 # 데이터 전처리
 train_loader, val_loader = load_data(batch_size=64)
 class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
@@ -386,7 +432,7 @@ for epoch in range(num_epochs):
         print('\nEarly Stopping 발동! 학습 종료.')
         break
 
-elapsed_time = time.time() - start_time # 학습 종료
+elapsed_time = time.time() - start_time # 학습 종료시 경과 시간
 print(f'\n학습 완료! 총 소요 시간: {elapsed_time/60:.2f}분')
 
 model.load_state_dict(torch.load('resnet18_best.pth')) # 최적 모델 로드
@@ -400,3 +446,6 @@ y_pred, y_true = get_predictions(model, val_loader, device)
 plot_confusion_matrix(y_true, y_pred, class_names)
 print('\n\n상세 분류 리포트:')
 print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+
+# 샘플 예측 시각화 실행
+visualize_predictions(model, val_loader, class_names, device, num_images=16)
