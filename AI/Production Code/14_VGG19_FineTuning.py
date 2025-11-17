@@ -223,7 +223,7 @@ criterion, optimizer, scheduler, scaler = setup_training(
 
 # TensorBoard 설정
 
-log_dir = f'runs/vgg19_bn_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+log_dir = f'runs/vgg19_bn_{datetime.now().strftime("%Y%m%d_%H%M%S")}' # 연월일_시분초 저장
 writer = SummaryWriter(log_dir=log_dir)
 
 # 학습 과정을 실시간으로 모니터링
@@ -232,17 +232,10 @@ writer = SummaryWriter(log_dir=log_dir)
 
 # 학습 및 검증 함수 (Mixed Precision) 
 
-# 훈련 함수 (Mixed Precision)
+# 훈련 함수 (Mixed Precision) # 한 에폭훈련 
 def train_one_epoch(model, train_loader, criterion, optimizer, scheduler, scaler, device, epoch):
-    """
-    한 에폭 훈련 (Mixed Precision Training)
-    
-    Returns:
-        epoch_loss: 평균 손실
-        epoch_acc: 정확도
-    """
     model.train()
-    
+
     running_loss = 0.0
     correct = 0
     total = 0
@@ -255,7 +248,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scheduler, scaler
         optimizer.zero_grad()
         
         # Mixed Precision Training
-        with autocast():  # FP16 모드
+        with autocast():  # FP16 모드 : 순전파
             outputs = model(inputs)
             loss = criterion(outputs, labels)
         
@@ -476,7 +469,7 @@ def visualize_gradcam(model, image, true_label, pred_label, class_names, device)
     cam = GradCAM(model=model, target_layers=target_layers)
     
     # 입력 이미지 준비
-    input_tensor = image.unsqueeze(0).to(device)
+    input_tensor = image.unsqueeze(0).to(device) # (batch,C,H,W)
     
     # Grad-CAM 생성 (예측된 클래스에 대해)
     targets = [ClassifierOutputTarget(pred_label)]
@@ -484,11 +477,11 @@ def visualize_gradcam(model, image, true_label, pred_label, class_names, device)
     grayscale_cam = grayscale_cam[0, :]
     
     # 이미지 역정규화
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1) # 채널별로 적용
+    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1) # 채널별로 적용
     img_denorm = image * std + mean
     img_denorm = torch.clamp(img_denorm, 0, 1)
-    rgb_img = img_denorm.permute(1, 2, 0).cpu().numpy()
+    rgb_img = img_denorm.permute(1, 2, 0).cpu().numpy() # (H,W,C)
     
     # Grad-CAM 오버레이
     cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
@@ -683,3 +676,23 @@ def plot_training_history(history):
     print(f'최종 검증 정확도: {history["val_acc"][-1]:.2f}%')
     print(f'\n최고 검증 정확도: {max(history["val_acc"]):.2f}%')
     print(f'최저 검증 손실: {min(history["val_loss"]):.4f}')
+
+# Mixed Precision Training
+# FP16과 FP32를 혼합하여 학습 속도 향상
+# with autocast():
+#     outputs = model(inputs)
+#     loss = criterion(outputs, labels)
+
+# scaler.scale(loss).backward()
+# scaler.step(optimizer)
+# scaler.update()
+
+# OneCycleLR 스케줄러
+# scheduler = OneCycleLR(
+#     optimizer,
+#     max_lr=lr * 10,
+#     epochs=num_epochs,
+#     steps_per_epoch=len(train_loader)
+# )
+
+
