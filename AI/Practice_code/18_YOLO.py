@@ -141,7 +141,7 @@ for name, detections in all_detections.items():
         class_counts = Counter([d['class'] for d in detections])
         for cls, count in class_counts.most_common():
             avg_conf = np.mean([d['confidence']
-                               for d in detections if d['class'] == cls])
+                               for d in detections if d['class'] == cls]) # cls: 클래스명
             print(f"  - {cls}: {count}개 (평균 confidence: {avg_conf:.3f})")
     else:
         print("  검출된 객체 없음")
@@ -195,7 +195,7 @@ axes[1].axis('off')
 plt.tight_layout()
 plt.show()
 
-# 모델 정보 및 성능 비교
+# 모델 정보 및 성능 비교 (번외)
 
 model_info = {
     'YOLOv8n': {'params': '3.2M', 'mAP': 37.3, 'speed': '80+ FPS'},
@@ -215,11 +215,11 @@ img_list = list(images.values()) # 이미지 리스트 준비
 
 start_time = time.time() # 단일 추론
 for img in img_list:
-    _ = model(img, verbose=False)
+    _ = model(img, verbose=False) # 시간만 측정
 single_time = time.time() - start_time
 
 start_time = time.time() # 배치 추론
-_ = model(img_list, verbose=False)
+_ = model(img_list, verbose=False) # 시간만 측정
 batch_time = time.time() - start_time
 
 print(f"단일 추론: {single_time:.3f}초 ({len(img_list)}개 이미지)")

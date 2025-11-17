@@ -4,7 +4,7 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 import torch.utils.data as data
 from torch.utils.data import DataLoader
-import torchvision.transforms as T
+import torchvision.transforms as T # 주의
 from torchvision import tv_tensors
 from torchvision.transforms import v2 as transforms
 import cv2
@@ -32,7 +32,7 @@ class CustomObjectDetectionDataset(data.Dataset):
 
         # Annotation 로드
         with open(annotation_file, 'r') as f:
-            self.coco_data = json.load(f)
+            self.coco_data = json.load(f) 
 
         # 이미지 ID 리스트
         self.image_ids = [img['id'] for img in self.coco_data['images']]
@@ -55,7 +55,7 @@ class CustomObjectDetectionDataset(data.Dataset):
     def __len__(self):
         return len(self.image_ids)
 
-    def __getitem__(self, idx): # 이미지 로드
+    def __getitem__(self, idx): # 이미지 로드 (항목 가져오기)
         img_id = self.image_ids[idx]
         img_info = next(img for img in self.coco_data['images'] if img['id'] == img_id)
         img_path = self.root_dir / img_info['file_name']
@@ -63,7 +63,7 @@ class CustomObjectDetectionDataset(data.Dataset):
         img = Image.open(img_path).convert("RGB")
 
         # Annotation 가져오기
-        anns = self.img_to_anns.get(img_id, [])
+        anns = self.img_to_anns.get(img_id, []) # get 함수는 없어도 None 반환> 빈 리스트 반환으로 설정(에러 미발생)
 
         boxes = []
         labels = []
@@ -77,7 +77,7 @@ class CustomObjectDetectionDataset(data.Dataset):
             boxes.append([x, y, x + w, y + h])
             labels.append(ann['category_id'])
             areas.append(ann['area'])
-            iscrowd.append(ann.get('iscrowd', 0))
+            iscrowd.append(ann.get('iscrowd', 0)) # 겹치면 누적, 없으면 0으로 설정
 
         # Tensor로 변환
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
@@ -95,7 +95,7 @@ class CustomObjectDetectionDataset(data.Dataset):
         }
 
         # Transform 적용
-        if self.transforms:
+        if self.transforms: # Transform 있다면(조건)
             img, target = self.transforms(img, target)
 
         return img, target
@@ -118,48 +118,48 @@ def get_model(num_classes, pretrained=True): # Faster R-CNN 모델 생성 및 �
 
     return model
 
-# mAP 계산 함수
+# iou 계산 함수
 def calculate_iou_batch(boxes1, boxes2): # 두 박스 세트 간의 IoU 계산 (벡터화)
     area1 = (boxes1[:, 2] - boxes1[:, 0]) * (boxes1[:, 3] - boxes1[:, 1])
     area2 = (boxes2[:, 2] - boxes2[:, 0]) * (boxes2[:, 3] - boxes2[:, 1])
 
-    lt = torch.max(boxes1[:, None, :2], boxes2[:, :2]) # :2 x,y
-    rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:]) # 2: w,h
+    lt = torch.max(boxes1[:, None, :2], boxes2[:, :2]) # :2 x,y # 좌상단(x1,y1)
+    rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:]) # 2: w,h # 우하단(x2,y2)
 
     wh = (rb - lt).clamp(min=0) # max: rb, min: lt -> 교집합 영역 내의 w,h
     # clamp(min=0)의 의미: 교집합이 없을 때 음수가 나오는 것을 방지하고자 최솟값 설정
     inter = wh[:, :, 0] * wh[:, :, 1] # -> 교집합 영역 내의 w*h
 
-    union = area1[:, None] + area2 - inter # None->자동으로 행렬구조 생성 [:, None]->[N,1]
+    union = area1[:, None] + area2 - inter # None->자동으로 행렬구조 생성 [:, None]->[N,1] # 브로드캐스팅 이용
     iou = inter / union
 
     return iou
 
-# Average Precision 계산
+# Average Precision 계산 : 모델 성능 지표
 def compute_ap(recall, precision): # 11-point interpolation
     ap = 0.
     for t in np.arange(0., 1.1, 0.1):
         if np.sum(recall >= t) == 0:
             p = 0
         else:
-            p = np.max(precision[recall >= t])
-        ap += p / 11.
+            p = np.max(precision[recall >= t]) # 각 recall 지점(0.1간격)에서 최대 precision찾기
+        ap += p / 11. # 11개 지점의 평균을 11번 더함
     return ap
 
-# mAP 계산
+# mAP 계산 : 모든 클래스의 AP 평균 계산
 def evaluate_map(model, data_loader, device, iou_threshold=0.5):
     model.eval()
     all_detections = []
     all_ground_truths = []
 
     with torch.no_grad():
-        for images, targets in tqdm(data_loader, desc="Evaluating"):
-            images = [img.to(device) for img in images]
+        for images, targets in tqdm(data_loader, desc="Evaluating"): # 배치단위 입력
+            images = [img.to(device) for img in images] # GPU에서 계산
             outputs = model(images)
 
-            for target, output in zip(targets, outputs):
+            for target, output in zip(targets, outputs): # numpy는 cpu에서 계산
                 all_ground_truths.append({
-                    'boxes': target['boxes'].cpu(),
+                    'boxes': target['boxes'].cpu(), 
                     'labels': target['labels'].cpu()
                 })
                 all_detections.append({
@@ -167,10 +167,10 @@ def evaluate_map(model, data_loader, device, iou_threshold=0.5):
                     'scores': output['scores'].cpu(),
                     'labels': output['labels'].cpu()
                 })
-    num_classes = max([max(gt['labels']) for gt in all_ground_truths]) + 1
+    num_classes = max([max(gt['labels']) for gt in all_ground_truths]) + 1 # background 추가
     aps = []
 
-    for cls in range(1, num_classes):  # Skip background
+    for cls in range(1, num_classes):  # Skip background(0번 배경) 건너뛰기
         # 해당 클래스만 필터링
         cls_detections = []
         cls_ground_truths = []
@@ -179,12 +179,12 @@ def evaluate_map(model, data_loader, device, iou_threshold=0.5):
             det_mask = det['labels'] == cls
             gt_mask = gt['labels'] == cls
 
-            if det_mask.sum() > 0:
+            if det_mask.sum() > 0: # 해당 클래스 검출 결과 추가(존재한다면)
                 cls_detections.append({
                     'boxes': det['boxes'][det_mask],
                     'scores': det['scores'][det_mask]
                 })
-            else:
+            else: # 존재하지 않다면 빈 텐서를 추가할 것
                 cls_detections.append({'boxes': torch.empty(0, 4), 'scores': torch.empty(0)})
 
             cls_ground_truths.append(gt['boxes'][gt_mask])
@@ -192,7 +192,7 @@ def evaluate_map(model, data_loader, device, iou_threshold=0.5):
         # Score로 정렬
         all_scores = []
         all_tp = []
-        num_gt = sum([len(gt) for gt in cls_ground_truths])
+        num_gt = sum([len(gt) for gt in cls_ground_truths]) # 정답 객체 총 개수
 
         for det, gt in zip(cls_detections, cls_ground_truths):
             if len(det['scores']) == 0:
@@ -201,20 +201,20 @@ def evaluate_map(model, data_loader, device, iou_threshold=0.5):
             for score, box in zip(det['scores'], det['boxes']):
                 all_scores.append(score.item())
 
-                if len(gt) == 0:
+                if len(gt) == 0: 
                     all_tp.append(0)
                 else:
                     ious = calculate_iou_batch(box.unsqueeze(0), gt)
                     max_iou = ious.max().item()
-                    all_tp.append(1 if max_iou >= iou_threshold else 0)
+                    all_tp.append(1 if max_iou >= iou_threshold else 0) # True Positive 판단-> 정답인 박스와 IOU비교 임계치 기준 1,0 반환
 
         if len(all_scores) == 0 or num_gt == 0:
             continue
 
         # Precision-Recall 계산
-        indices = np.argsort(all_scores)[::-1]
-        tp = np.array(all_tp)[indices]
-        fp = 1 - tp
+        indices = np.argsort(all_scores)[::-1] # 내림차순
+        tp = np.array(all_tp)[indices] # 
+        fp = 1 - tp # 잘못 검출한 것 
 
         tp_cumsum = np.cumsum(tp)
         fp_cumsum = np.cumsum(fp)
@@ -225,7 +225,7 @@ def evaluate_map(model, data_loader, device, iou_threshold=0.5):
         ap = compute_ap(recalls, precisions)
         aps.append(ap)
 
-    mAP = np.mean(aps) if len(aps) > 0 else 0.0
+    mAP = np.mean(aps) if len(aps) > 0 else 0.0 
     return mAP, aps
 
 # 학습 함수
@@ -277,7 +277,7 @@ def train_model(num_classes, train_dataset, val_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=2,
-        collate_fn=lambda x: tuple(zip(*x))
+        collate_fn=lambda x: tuple(zip(*x)) # collate_fn : batch 묶는 방법 지정(tuple 형태)
     )
 
     val_loader = DataLoader(
@@ -297,7 +297,7 @@ def train_model(num_classes, train_dataset, val_dataset,
     optimizer = torch.optim.SGD(params, lr=lr, momentum=0.9, weight_decay=0.0005)
 
     # Learning rate scheduler
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1) # 3epoch 마다 학습률 0.1배로 줄임
 
     # 학습 기록
     history = {
