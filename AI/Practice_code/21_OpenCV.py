@@ -214,3 +214,63 @@ axes[1].imshow(dilate_image)
 axes[2].imshow(opening)
 axes[3].imshow(closing)
 plt.show()
+
+# 추출, 크기 변환, 회전, 보간
+image_path = '/content/wafer.jpg'
+image = cv2.imread(image_path)
+src = image.copy() 
+
+dst = src[250:350, 250:350] # 추출
+cv2.imshow(dst)
+
+dst = cv2.resize(src, dsize=(560,560), interpolation=cv2.INTER_NEAREST) # 크기 변환
+cv2.imshow(dst)
+
+height, width, _ = src.shape
+center = (width/2, height/2)
+angle = 90
+scale = 0.5
+matrix = cv2.getRotationMatrix2D(center, angle, scale) # 회전
+dst = cv2.warpAffine(src, matrix, (width,height))
+cv2.imshow(dst)
+
+mx = 0.3
+my = 0.3
+dst = cv2.warpAffine(src, matrix, (int(width+width*mx), int(height+height*my))) # 여유 공간 부여
+cv2.imshow(dst)
+
+# cv2.INTER_NEAREST 가장 가까운 픽셀 값 복사 사용하여 빈 공간 보간
+dst1 = cv2.resize(src, (0,0), fx=4, fy=4, interpolation=cv2.INTER_NEAREST)
+cv2.imshow(dst1)
+
+# cv2.INTER_LINEAR 주변 2*2 픽셀의 가중 평균 계산 >> nearest 보다 느리다(평균계산해야 되니깐)
+dst2 = cv2.resize(src, (0,0), fx=4, fy=4, interpolation=cv2.INTER_LINEAR)
+cv2.imshow(dst2)
+
+# 4*4 이웃픽셀을 사용하여 빈 콧을 보간함
+dst3 = cv2.resize(src, (420,420),cv2.INTER_CUBIC)
+cv2.imshow(dst3)
+
+# cv2.INTER_LANCZOS4 #  8*8 이웃픽셀을 사용하여 빈 콧을 보간함
+dst4 = cv2.resize(src, (420,420),cv2.LANCZOS4)
+cv2.imshow(dst4)
+
+images = [dst1[300:350, 350:400], dst2[300:350, 350:400], dst3[300:350, 350:400], dst4[300:350, 350:400]]
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(6,6))
+k = 0
+for i in range(2):
+  for j in range(2):
+    axes[i, j].imshow(images[k])
+    axes[i, j].set_title(f'image_{k+1}')
+    k += 1
+plt.show()
+
+# 투시 변환
+height, widht, _ = src.shape
+src_pts = np.array([[0.0, 0.0], [width, 0.0], [width, height], [0.0, height]], dtype=np.float32) # 원본 4점
+dst_pts = np.array([[10, 80], [200, 80], [40, 150], [350,110]], dtype=np.float32) # 목표 4점
+
+M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+dst = cv2.warpPerspective(src, M, (widht, height), borderValue=(0,255,255)) # 원근 변환 적용
+# src: 원본 이미지, M: 변환 행렬, 원하는 출력 크기(width, height), borderVale(B,R,G) 빈공간 색상
+cv2.imshow(dst)
