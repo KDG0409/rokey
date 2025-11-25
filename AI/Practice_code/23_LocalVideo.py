@@ -176,9 +176,9 @@ edges = cv2.Canny(gray,50,150) # 엣지 검출
 lines = cv2.HoughLinesP(edges,         # 엣지의 모음
                         1,             # rho 해상도
                         np.pi/180,     # theta 해상도(각도)
-                        threshold=100, # 직선으로 간주될 수 있는 최소값
-                        minLineLength=10,  # 내가 검출하려는 직선의 최소 길이
-                        maxLineGap=10)     # 직선으로 간주되는 간격
+                        threshold=100, # 직선으로 간주될 수 있는 최소값(투표수)
+                        minLineLength=10,  # 내가 검출하려는 직선의 최소 길이(픽셀단위)
+                        maxLineGap=10)     # 직선으로 간주되는 간격 # 끊어진 선 사이 간격
 if lines is not None:
   for line in lines:
     x1, y1, x2, y2 = line[0]
