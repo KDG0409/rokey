@@ -185,3 +185,31 @@ if lines is not None:
     cv2.line(image, (x1,y1), (x2,y2), (0,0,255), 2)
 
 plt.imshow(image)
+
+# OTSU : 자동으로 최적 임계값 찾기
+# grayscale image >> 이진화 하는 코드
+# 히스토그램(픽셀 값 분포) 자동으로 분석 >> 최적의 임계값( threshold) >> 이미지 내부에서 흑(0), 백(255) 나눠줘요
+
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+_, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU) # threshold,이진화 이미지
+
+# 컨투어(윤곽선) 검출
+#cv2.RETR_EXTERNAL 윤곽선을 찾는 방법
+#cv2.CHAIN_APPROX_SIMPLE 윤곽선을 '저장하는 방법'
+
+cons = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+# 이진화 이미지, 모든 윤곽선 리스트 반환, 모즌 점 저장
+con_packs = cons[0] if len(cons) == 2 else cons[1]
+
+cv2.drawContours(image, con_packs, -1, (0, 255, 0), 3) #시각화
+
+# 윤곽선 검색 방식(contour retrieval mode)
+
+# RETR_LIST : 모든 윤곽선 찾아서 리스트로 반환
+# RETR_EXTERNAL : 가장 바깥 윤곽선만
+# RETR_TREE : 윤곽선 계층구조까지 (부모-자식)
+# RETR_CCOMP : 2단계 계층구조까지
+# cv2.CHAIN_APPROX_NONE
+# 윤곽선의 모든 점을 전부 저장
+# cv2.CHAIN_APPROX_SIMPLE
+# 꼭 필요한 점(시작점, 끝점)만 저장
