@@ -477,3 +477,4 @@ while cap.isOpened():
 # --- 4. 종료 및 정리 ---
 cap.release()
 cv2.destroyAllWindows()
+
