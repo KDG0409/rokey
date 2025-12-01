@@ -478,3 +478,99 @@ while cap.isOpened():
 cap.release()
 cv2.destroyAllWindows()
 
+# Lucas-Kanade
+
+video_path = '/content/drive/MyDrive/두산로보틱스_딥러닝_컴퓨터비전/컴퓨터 비전 응용/교육생제공용/강의_6기_4차시_추적 알고리즘 실습/newyork.mp4'
+cap = cv2.VideoCapture(video_path) # 비디오 캡처 객체 생성
+
+# 비디오 파일이 제대로 열렸는지 확인
+if not cap.isOpened():
+    print(f"오류: 비디오 파일 '{video_path}'을 열 수 없습니다.")
+    print("Google Drive가 마운트되었고 경로가 정확한지 확인해 주세요.")
+    exit()
+
+# 2. 첫 프레임에서 특징점 찾기
+ret, old_frame = cap.read() # 첫 프레임 읽기
+
+# 프레임을 제대로 읽었는지(ret=True) 한 번 더 확인: 이 부분이 기존 오류의 원인일 가능성이 높습니다.
+if not ret or old_frame is None:
+    print("오류: 첫 번째 프레임을 읽지 못했습니다. 비디오 파일이 손상되었을 수 있습니다.")
+    cap.release()
+    exit()
+# 첫 프레임을 흑백으로 변환
+old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
+
+# Shi-Tomasi 코너 검출 알고리즘 사용해 특징점 찾기
+corners = cv2.goodFeaturesToTrack(
+    old_gray,
+    maxCorners=100,      # 최대 특징점 개수
+    qualityLevel=0.3,     # 특징점 품질 레벨 (0.0-1.0)
+    minDistance=7        # 특징점 간 최소 거리
+)
+
+# 3. Lucas-Kanade parameter 설정
+lk_params = dict(
+            winSize=(15, 15), # 윈도우 사이즈(크기)
+            maxLevel=2,       # 피라미드 레벨
+            criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03) #종료 조건
+        )
+# 이미지 피라미드
+# 몇 단계까지 사용하지 설정 (0: 원본, 1:1단계 다운 샘플링, 2: 2단계 다운샘플링)
+
+# 4. 비디오 처리 루프 , 광학 흐름(optical flow ) 계산
+
+frame_count = 0
+MAX_FRAMES_TO_PROCESS = 150
+DISPLAY_EVERY_N_FRAMES = 20
+
+track_frame = None
+
+while cap.isOpened() and frame_count < MAX_FRAMES_TO_PROCESS:
+    ret, frame = cap.read()
+
+    if not ret or frame is None:
+        break
+
+    frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # optical flow 계산: 이전 프레임(old_gray)의 특징점(corners)이 현재 프레임에서 어디로 이동했는지 추정
+    new_corners, status, error = cv2.calcOpticalFlowPyrLK(
+        old_gray, frame_gray, corners, None, **lk_params
+    )
+
+    # 5. 좋은 점들만 선택 (status = 1 >> 성공적으로 추적된 점)
+    good_new = new_corners[status == 1]
+    good_old = corners[status == 1]
+
+    # 한번만 초기화
+    if track_frame is None:
+        track_frame = frame.copy() # first_frame only
+    else:
+        track_frame = track_frame
+
+    # 6. 움직임 그리기
+    # display_frame = frame.copy() # 원본 프레임(사진)에 그릴 복사본 생성
+
+    for i, (new, old) in enumerate(zip(good_new, good_old)):
+        a, b = new.ravel().astype(int) # 현재 위치
+        c, d = old.ravel().astype(int) # 이전 위치
+        # 픽셀 좌표는 정수여야 하니깐 dtype을 int 로 변환
+
+        # 이전 위치와 현재 위치를 이어주는 초록색 선 그리기
+        cv2.line(track_frame, (a, b), (c, d), (0, 255, 0), 2)
+
+        # 현재 위치에 빨간색 점(원) 그리기
+        cv2.circle(track_frame, (a, b), 5, (0,0,255), -1)
+
+    if frame_count % DISPLAY_EVERY_N_FRAMES == 0:
+        cv2.imshow(track_frame)  # 추적 결과 프레임 표시
+        time.sleep(1)
+
+    # 업데이트: 다음 루프를 위해 현재 프레임을 이전 프레임을 설정
+    old_gray = frame_gray.copy()
+    corners = good_new.reshape(-1, 1, 2) # 자동계산
+
+    frame_count += 1
+
+cap.release()
+# cv2.destroyAllWindows()
