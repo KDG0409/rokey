@@ -250,3 +250,175 @@ import numpy as np                   # 텐서를 넘파이로 바꿔서 그림�
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # GPU가 있으면 cuda, 없으면 cpu를 선택함
 print("사용 중인 device:", device)                                     # 현재 선택된 device를 출력함
+
+# ===== Generator 구성(3채널 64x64 → 3채널 64x64) =====
+G_layers = []                                        # 생성자 레이어들을 담을 리스트를 만듦
+
+G_layers.append(nn.Conv2d(3, 64, 4, 2, 1))
+# 3채널 입력을 64채널로 바꾸면서 크기를 64→32로 줄이는 합성곱
+# 4: 커널크기, 2: stride (pooling 효과 대체), 1: padding
+G_layers.append(nn.ReLU(inplace=True))               # ReLU 활성화 함수를 추가함
+
+G_layers.append(nn.Conv2d(64, 128, 4, 2, 1))         # 64채널→128채널, 크기 32→16으로 줄이는 합성곱
+G_layers.append(nn.BatchNorm2d(128))                 # 128채널에 대해 배치 정규화를 수행함
+G_layers.append(nn.ReLU(inplace=True))               # ReLU 활성화 함수를 추가함
+
+G_layers.append(nn.ConvTranspose2d(128, 64, 4, 2, 1)) # 전치합성곱으로 크기를 16→32로 키우면서 128→64채널로 바꿈
+G_layers.append(nn.BatchNorm2d(64))                   # 64채널 배치 정규화
+G_layers.append(nn.ReLU(inplace=True))                # ReLU 활성화 함수를 추가함
+
+G_layers.append(nn.ConvTranspose2d(64, 3, 4, 2, 1))   # 전치합성곱으로 크기를 32→64로 키우면서 3채널(RGB)로 출력함
+G_layers.append(nn.Tanh())                            # 출력 값을 [-1, 1] 범위로 제한하기 위해 Tanh를 사용함
+
+G = nn.Sequential(*G_layers)                          # 리스트에 쌓은 레이어들을 nn.Sequential로 묶어 하나의 모델로 만듦
+G = G.to(device)                                      # 생성자를 GPU 또는 CPU로 이동시킴
+
+# ===== Discriminator 구성(입력 3채널 + 타깃 3채널 = 6채널) =====
+D_layers = []                                         # 판별기 레이어들을 담을 리스트를 만듦
+
+D_layers.append(nn.Conv2d(6, 64, 4, 2, 1))
+# 6채널 입력을 64채널로 바꾸면서 크기를 64→32로 줄이는 합성곱
+# 채널 (입력이미지 채널 3, 타겟이미지 채널 3)
+D_layers.append(nn.LeakyReLU(0.2, inplace=True))      # LeakyReLU 활성화로 음수도 조금 통과시키게 함
+
+D_layers.append(nn.Conv2d(64, 128, 4, 2, 1))          # 64채널→128채널, 크기 32→16으로 줄이는 합성곱
+D_layers.append(nn.BatchNorm2d(128))                  # 128채널 배치 정규화
+D_layers.append(nn.LeakyReLU(0.2, inplace=True))      # LeakyReLU 활성화를 사용함
+
+D_layers.append(nn.Conv2d(128, 256, 4, 2, 1))         # 128채널→256채널, 크기 16→8로 줄이는 합성곱
+D_layers.append(nn.BatchNorm2d(256))                  # 256채널 배치 정규화
+D_layers.append(nn.LeakyReLU(0.2, inplace=True))      # LeakyReLU 활성화를 사용함
+
+D_layers.append(nn.Conv2d(256, 1, 4, 1, 1))           # 256채널→1채널 출력, Patch 단위 진짜/가짜 점수 맵을 출력함
+
+D = nn.Sequential(*D_layers)                          # 레이어들을 nn.Sequential로 묶어 판별기 모델을 만듦
+D = D.to(device)                                      # 판별기를 GPU 또는 CPU로 이동시킴
+
+# ===== 한 번만 더미 입력으로 동작 테스트 =====
+dummy_x = torch.randn(1, 3, 64, 64, device=device)    # 3채널 64x64 더미 입력 이미지를 하나 만듦
+# 1: 배치크기, 3채널, 크기 64*64
+dummy_y = torch.randn(1, 3, 64, 64, device=device)    # 3채널 64x64 더미 타깃 이미지를 하나 만듦
+
+dummy_fake = G(dummy_x)                               # 생성자를 통과시켜 가짜 이미지(생성이미지)를 생성함
+print("생성자 출력 크기:", dummy_fake.shape)          # 생성자 출력 텐서 크기를 확인함
+
+dummy_pair = torch.cat([dummy_x, dummy_y], dim=1)     # (입력, 타깃)을 채널 방향으로 합쳐 6채널 텐서를 만듦
+dummy_disc = D(dummy_pair)                            # 판별기를 통과시켜 PatchGAN 출력 맵을 얻음
+print(dummy_pair.shape)
+print("판별기 출력 크기:", dummy_disc.shape)          # 판별기 출력 텐서 크기를 확인함
+# 왜 별기 출력 크기: torch.Size([1, 1, 7, 7]) 패치 단위 점수 맵
+# MNIST 원본 이미지를 텐서로 읽어오기 위한 변환을 정의함
+transform = T.ToTensor()                                # 이미지를 [0,1] 범위의 (1,28,28) 텐서로 바꾸는 변환임
+
+# MNIST 학습용 데이터셋을 다운로드하고 불러옴 (처음 한 번만 다운로드됨)
+mnist_full = torchvision.datasets.MNIST(
+    root="./data",                                      # 데이터를 저장할 경로를 지정함
+    train=True,                                         # 학습용(train) 데이터를 사용함
+    download=True,                                      # 데이터가 없으면 자동으로 다운로드함
+    transform=transform                                 # 위에서 정의한 ToTensor 변환을 적용함
+)
+
+# 너무 오래 걸리지 않도록 일부 샘플만 사용함
+num_samples = 2000                                      # 전체 데이터 중 2000개만 사용하도록 설정함
+indices = torch.randperm(len(mnist_full))[:num_samples] # 데이터 인덱스를 무작위로 섞은 뒤 앞에서 2000개만 선택함
+mnist_subset = Subset(mnist_full, indices)              # 선택한 인덱스들만 포함하는 Subset을 만듦
+
+batch_size = 64                                         # 한 번에 처리할 미니배치 크기를 64로 설정함
+loader = DataLoader(
+    mnist_subset,                                       # 위에서 만든 Subset을 사용함
+    batch_size=batch_size,                              # 설정한 배치 크기를 사용함
+    shuffle=True,                                       # 매 epoch마다 데이터를 섞어서 가져오게 함
+    num_workers=2,                                      # 데이터를 병렬로 읽어올 작업자 수를 2로 설정함(Colab에서 무난한 값)
+    pin_memory=True if device.type == "cuda" else False # GPU 사용 시 데이터를 pinned memory로 옮겨 전송 효율을 높임
+)
+
+# 한 배치를 꺼내서 입력/타깃 텐서가 어떻게 생겼는지 확인함
+images, labels = next(iter(loader))                     # (이미지, 라벨) 배치를 하나 꺼냄 (이미지는 [B,1,28,28])
+
+print("원본 MNIST 텐서 크기:", images.shape)           # 원본 이미지 텐서의 크기를 출력함
+
+criterion_gan = nn.BCEWithLogitsLoss().to(device)       # GAN 진짜/가짜 판별에 사용할 BCEWithLogitsLoss를 device 위로 올림
+criterion_l1 = nn.L1Loss().to(device)                   # L1 픽셀 차이 손실 함수를 device 위로 올림
+
+lr = 0.0002                                             # 학습률(learning rate)을 0.0002로 설정함
+beta1 = 0.5                                             # Adam 옵티마이저의 beta1 파라미터를 0.5로 설정함
+
+optimizer_G = torch.optim.Adam(
+    G.parameters(), lr=lr, betas=(beta1, 0.999)         # 생성자 파라미터를 Adam으로 업데이트하도록 설정함
+)
+optimizer_D = torch.optim.Adam(
+    D.parameters(), lr=lr, betas=(beta1, 0.999)         # 판별자 파라미터를 Adam으로 업데이트하도록 설정함
+)
+
+lambda_l1 = 100.0                                       # L1 손실에 곱해 줄 가중치 λ를 100으로 설정함 (pix2pix 논문 기본값)
+
+num_epochs = 3                                          # 전체 데이터를 3번 반복(epoch)하면서 학습하도록 설정함
+
+for epoch in range(num_epochs):                         # 각 epoch에 대해 반복함
+    print(f"===== Epoch {epoch+1}/{num_epochs} =====")  # 현재 epoch 정보를 출력함
+
+    for step, (imgs, labels) in enumerate(loader):      # DataLoader에서 (이미지, 라벨) 배치를 하나씩 꺼냄
+        # ---- 1. 입력/타깃 이미지 만들기 ----
+        imgs = imgs.to(device)                          # 원본 MNIST 이미지를 device(GPU/CPU)로 옮김 (크기 [B,1,28,28])
+
+        imgs_64 = F.interpolate(                        # 이미지를 28x28에서 64x64로 업샘플링함
+            imgs, size=(64, 64), mode="bilinear", align_corners=False
+        )
+
+        inputs = imgs_64.repeat(1, 3, 1, 1)             # 1채널 이미지를 채널 방향으로 3번 복사해 3채널 이미지를 만듦
+        inputs = inputs * 2 - 1                         # [0,1] 범위였던 값을 [-1,1] 범위로 스케일링함
+
+        targets = 1 - imgs_64                           # 색 반전을 위해 1에서 이미지를 빼서 밝기 반전 이미지를 만듦
+        targets = targets.repeat(1, 3, 1, 1)            # 마찬가지로 3채널로 복제함
+        targets = targets * 2 - 1                       # 타깃도 [-1,1] 범위로 스케일링함
+
+        # ---- 2. 판별기 D 학습 ----
+        optimizer_D.zero_grad()                         # 판별기 기울기를 0으로 초기화함
+
+        with torch.no_grad():                           # 생성자 업데이트 전, 가짜 이미지를 만들 때는 기울기가 필요 없음
+            fake_tgt_for_D = G(inputs)                  # 생성자 G를 사용해 입력으로부터 가짜 타깃 이미지를 만듦
+
+        real_pair = torch.cat([inputs, targets], dim=1) # (입력, 진짜 타깃)을 채널 방향으로 합쳐 6채널 텐서를 만듦
+        fake_pair = torch.cat([inputs, fake_tgt_for_D], dim=1) # (입력, 가짜 타깃)을 합쳐 6채널 텐서를 만듦
+
+        pred_real = D(real_pair)                        # 진짜 쌍에 대한 판별기 출력을 얻음
+        pred_fake = D(fake_pair)                        # 가짜 쌍에 대한 판별기 출력을 얻음
+
+        label_real = torch.ones_like(pred_real, device=device) # 진짜에는 1 라벨을 부여함
+        label_fake = torch.zeros_like(pred_fake, device=device) # 가짜에는 0 라벨을 부여함
+
+        loss_D_real = criterion_gan(pred_real, label_real)      # 진짜를 1로 분류하도록 하는 손실을 계산함
+        loss_D_fake = criterion_gan(pred_fake, label_fake)      # 가짜를 0으로 분류하도록 하는 손실을 계산함
+
+        loss_D = (loss_D_real + loss_D_fake) * 0.5              # 두 손실의 평균을 판별기 전체 손실로 사용함
+
+        loss_D.backward()                          # 판별기 손실에 대해 역전파를 수행해 기울기를 계산함
+        optimizer_D.step()                         # 판별기 파라미터를 한 스텝 업데이트함
+
+        # ---- 3. 생성자 G 학습 ----
+        optimizer_G.zero_grad()                         # 생성자 기울기를 0으로 초기화함
+
+        fake_tgt = G(inputs)                            # 생성자 G로부터 가짜 타깃 이미지를 다시 생성함
+        fake_pair_for_G = torch.cat([inputs, fake_tgt], dim=1)  # (입력, 가짜 타깃)을 합쳐 6채널 텐서를 만듦
+
+        pred_fake_for_G = D(fake_pair_for_G)            # 판별기에 가짜 쌍을 넣어 출력을 얻음
+
+        label_real_for_G = torch.ones_like(pred_fake_for_G, device=device)  # 생성자는 가짜가 진짜(1)처럼 보이게 만들고 싶어함
+
+        loss_G_gan = criterion_gan(pred_fake_for_G, label_real_for_G)       # 판별기를 속이려는 GAN 손실을 계산함
+        loss_G_l1 = criterion_l1(fake_tgt, targets) * lambda_l1             # 가짜와 진짜 이미지 차이에 대한 L1 손실을 계산하고 λ를 곱함
+
+        loss_G = loss_G_gan + loss_G_l1                                     # 전체 생성자 손실은 GAN 손실과 L1 손실의 합임
+
+        loss_G.backward()                          # 생성자 손실에 대해 역전파를 수행해 기울기를 계산함
+        optimizer_G.step()                         # 생성자 파라미터를 한 스텝 업데이트함
+
+        # ---- 4. 중간 로그 출력 ----
+        if step % 50 == 0:                         # 50 스텝마다 한 번씩 학습 로그를 출력함
+            print(
+                f"[Epoch {epoch+1}/{num_epochs}] "
+                f"Step {step}/{len(loader)} "
+                f"Loss_D: {loss_D.item():.4f} "
+                f"Loss_G: {loss_G.item():.4f} "
+                f"(GAN: {loss_G_gan.item():.4f}, L1: {loss_G_l1.item():.4f})"
+            )                                     # 현재 스텝의 손실 값을 보기 좋게 출력함
