@@ -422,3 +422,55 @@ for epoch in range(num_epochs):                         # 각 epoch에 대해 �
                 f"Loss_G: {loss_G.item():.4f} "
                 f"(GAN: {loss_G_gan.item():.4f}, L1: {loss_G_l1.item():.4f})"
             )                                     # 현재 스텝의 손실 값을 보기 좋게 출력함
+
+# DataLoader에서 한 배치(이미지, 라벨)를 꺼냄
+imgs, labels = next(iter(loader))                 # 원본 MNIST 이미지와 라벨을 하나의 배치로 가져옴
+imgs = imgs.to(device)                            # 이미지를 device로 옮김
+
+# 위 학습 루프와 동일하게 입력/타깃 텐서를 다시 만들어 줌
+imgs_64 = F.interpolate(imgs, size=(64, 64), mode="bilinear", align_corners=False)  # 28x28 → 64x64 업샘플링
+inputs = imgs_64.repeat(1, 3, 1, 1)              # 1채널 → 3채널로 복제
+inputs = inputs * 2 - 1                          # [0,1] → [-1,1] 정규화
+
+targets = 1 - imgs_64                            # 색 반전된 이미지를 만듦
+targets = targets.repeat(1, 3, 1, 1)             # 3채널로 복제
+targets = targets * 2 - 1                        # [0,1] → [-1,1] 정규화
+
+# 학습된 생성자를 사용해 가짜 타깃 이미지를 생성함
+with torch.no_grad():                            # 추론 단계에서는 기울기를 계산할 필요가 없으므로 no_grad를 사용함
+    fake_tgt = G(inputs)                         # 생성자에 입력을 넣어 생성 이미지를 얻음
+
+# 시각화를 위해 텐서를 CPU로 옮기고 넘파이 배열로 바꿈
+inp_np = inputs.cpu().numpy()                    # 입력 텐서를 CPU로 옮긴 뒤 넘파이로 변환함
+tgt_np = targets.cpu().numpy()                   # 타깃 텐서를 넘파이로 변환함
+fake_np = fake_tgt.cpu().numpy()                 # 생성 이미지를 넘파이로 변환함
+
+# [-1,1] 범위를 [0,1] 범위로 다시 변환함
+inp_np = (inp_np + 1) / 2
+tgt_np = (tgt_np + 1) / 2
+fake_np = (fake_np + 1) / 2
+
+num_show = 3                                     # 앞에서부터 3개 샘플만 시각화함
+plt.figure(figsize=(9, 9))                       # 가로 9, 세로 9 크기의 그림을 만듦
+
+for i in range(num_show):                        # 0,1,2 세 샘플에 대해 반복함
+    # 입력 이미지
+    plt.subplot(num_show, 3, i * 3 + 1)          # i번째 행의 1열 위치에 입력 이미지를 그림
+    plt.imshow(np.transpose(inp_np[i], (1, 2, 0)), cmap="gray")  # (C,H,W)를 (H,W,C)로 바꿔 그림
+    plt.axis("off")                              # 축 눈금과 테두리를 숨김
+    plt.title("입력")                             # 제목을 '입력'으로 설정함
+
+    # 타깃(진짜) 이미지
+    plt.subplot(num_show, 3, i * 3 + 2)          # i번째 행의 2열 위치에 타깃 이미지를 그림
+    plt.imshow(np.transpose(tgt_np[i], (1, 2, 0)), cmap="gray")  # 타깃 이미지를 그림
+    plt.axis("off")                              # 축을 숨김
+    plt.title("타깃(색 반전)")                    # 제목을 '타깃(색 반전)'으로 설정함
+
+    # 생성된 이미지
+    plt.subplot(num_show, 3, i * 3 + 3)          # i번째 행의 3열 위치에 생성 이미지를 그림
+    plt.imshow(np.transpose(fake_np[i], (1, 2, 0)), cmap="gray") # 생성된 이미지를 그림
+    plt.axis("off")                              # 축을 숨김
+    plt.title("생성 결과")                         # 제목을 '생성 결과'로 설정함
+
+plt.tight_layout()                               # 서브플롯 사이 간격을 자동으로 조정함
+plt.show()       
