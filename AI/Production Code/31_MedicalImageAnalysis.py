@@ -1,27 +1,5 @@
 # ## Kaggle API Token 업로드 코드
 
-# from google.colab import files
-
-# # 파일 업로드 대화 상자를 띄웁니다.
-# print("Kaggle API Token (kaggle.json) 파일을 선택하여 업로드해주세요.")
-# uploaded = files.upload()
-
-# # 업로드된 파일 이름을 확인합니다.
-# if 'kaggle.json' in uploaded:
-#     print("kaggle.json 파일 업로드 완료.")
-
-#     # .kaggle 디렉토리를 생성하고 kaggle.json을 이동/복사합니다.
-#     # Kaggle CLI가 파일을 찾을 수 있도록 표준 위치에 저장합니다.
-#     !mkdir -p ~/.kaggle
-#     !cp kaggle.json ~/.kaggle/
-
-#     # API 키 파일에 대한 권한을 설정합니다 (보안을 위해 필수).
-#     !chmod 600 ~/.kaggle/kaggle.json
-
-#     print("Kaggle 환경 설정 완료. 이제 !kaggle 명령어를 사용할 수 있습니다.")
-# else:
-#     print("'kaggle.json' 파일이 업로드되지 않았거나 파일명이 다릅니다.")
-
 # 섹션 1: 환경 설정 및 라이브러리 설치
 # 기본 라이브러리 임포트
 import os  # 파일 및 디렉토리 관리
@@ -98,22 +76,6 @@ try:
     # files.upload() 대신 파일이 업로드되었다고 가정하고 셸 명령 실행
     # (Colab 환경에서 블록킹 오류를 방지하기 위함)
     if os.path.exists("kaggle.json"):
-        # from google.colab import files # files 모듈 임포트 유지
-
-        # # Kaggle 디렉토리 생성 및 파일 이동
-        # !mkdir -p ~/.kaggle
-        # !cp kaggle.json ~/.kaggle/
-        # !chmod 600 ~/.kaggle/kaggle.json
-
-        # # 데이터셋 다운로드
-        # !kaggle datasets download -d paultimothymooney/chest-xray-pneumonia -p ./data
-
-        # # 압축 해제
-        # !unzip -o -q ./data/chest-xray-pneumonia.zip -d ./data/
-
-        # # 불필요한 파일/폴더 제거
-        # !rm ./data/chest-xray-pneumonia.zip
-        # !rm -rf ./data/__MACOSX
 
         print("다운로드 완료!")
         data_dir = "./data/chest_xray"
