@@ -361,3 +361,61 @@ for epoch in range(num_epoch):
         total_loss += loss.item()
     avg_loss = total_loss / len(dataloader) # 한 epoch 동안 평균 손실 계산
     print(f"epoch [{epoch+1}/{num_epoch}], 평균손실 ")
+
+# 간단한 학습 루프 (입문용으로 1~2 epoch만 돌려보기)
+
+from torch.utils.data import Dataset
+import os
+
+class Flickr8kDataset(Dataset):
+    def __init__(self, image_folder, captions_dict, transform=None, max_len=20):
+        self.image_folder = image_folder         # 예: "./flickr8k/Flicker8k_Dataset"
+        self.captions_dict = captions_dict       # {"파일명.jpg": [token_id,...], ...}
+        self.transform = transform
+        self.max_len = max_len
+
+        # 1) 캡션에 등장하는 전체 이미지 파일명
+        all_image_ids = list(captions_dict.keys())
+
+        # 2) 실제 폴더에 존재하는 파일만 남기기
+        valid_image_ids = []
+        missing_image_ids = []
+
+        for img_id in all_image_ids:
+            img_path = os.path.join(self.image_folder, img_id)
+            if os.path.exists(img_path):
+                valid_image_ids.append(img_id)
+            else:
+                missing_image_ids.append(img_id)
+
+        self.image_ids = valid_image_ids
+
+
+    def __len__(self):
+        return len(self.image_ids)
+
+    def __getitem__(self, idx):
+        img_id = self.image_ids[idx]
+        img_path = os.path.join(self.image_folder, img_id)
+
+        # 혹시 모를 예외 상황 방지용 (거의 안 나오겠지만 안전장치)
+        if not os.path.exists(img_path):
+            raise FileNotFoundError(f"Dataset 내부 오류: {img_path} 가 존재하지 않습니다.")
+
+        # 이미지 로드
+        from PIL import Image
+        image = Image.open(img_path).convert("RGB")
+
+        if self.transform is not None:
+            image = self.transform(image)
+
+        # 캡션 텐서 가져오기 (이미 앞에서 토크나이즈 + 패딩했다고 가정)
+        caption = self.captions_dict[img_id]
+
+        return image, caption
+    
+# GitHub에서 Flickr8k 데이터셋을 다운로드하고, 이미지와 캡션을 로드했습니다.
+# 텍스트를 전처리하여 단어 사전(vocabulary)을 만들고, 문장을 숫자 시퀀스로 변환했습니다.
+# 사전 학습된 ResNet-18을 인코더로 사용해 이미지 특징을 추출했습니다.
+# LSTM 기반 디코더를 사용해, 이미지 특징과 캡션을 이용하여 다음 단어를 예측하는 모델을 만들었습니다.
+# 작은 서브셋에 대해 간단한 학습을 수행하고, 실제로 캡션을 생성해 보았습니다.
