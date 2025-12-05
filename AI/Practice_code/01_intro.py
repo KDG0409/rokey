@@ -1,3 +1,12 @@
+# [ 당신만을 위한 참고 서비스]
+
+# 1. 데이콘 자기 주도 학습 사이트 
+# https://dacon.io/hackathon
+
+# 2. [KDT 강사 보수교육] 피지컬 AI와 디지털 트윈 기초 개념
+# https://drive.google.com/drive/folders/1ZELjBpv-FjZR27gvsSnP8bKp74DAE9IG?usp=sharing
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
