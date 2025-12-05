@@ -400,3 +400,202 @@ else:
     print("\n학습 데이터셋이 비어있어 학습을 건너뜁니다.")
     train_losses = []
     train_accuracies = []
+
+# 모델 평가
+
+# 평가 함수
+def evaluate_model(model, test_loader):
+    """
+    테스트 데이터로 모델 평가
+    Args:
+        model: 평가할 모델
+        test_loader: 테스트 데이터 로더
+    Returns:
+        accuracy: 정확도
+        all_labels: 실제 라벨
+        all_predictions: 예측 라벨
+    """
+    model.eval()  # 평가 모드
+    correct = 0
+    total = 0
+    all_labels = []  # 실제 라벨 저장
+    all_predictions = []  # 예측 라벨 저장
+
+    with torch.no_grad():  # 기울기 계산 비활성화
+        for images, labels in test_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+
+            outputs = model(images)  # 예측
+            _, predicted = torch.max(outputs.data, 1)  # 최대값 인덱스
+
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+            # CPU로 이동하여 저장
+            all_labels.extend(labels.cpu().numpy())
+            all_predictions.extend(predicted.cpu().numpy())
+
+    accuracy = 100 * correct / total
+    return accuracy, all_labels, all_predictions
+
+# 평가실행 (테스트 데이터가 있고, 학습이 진행됨)
+test_accuracy = 0.0
+true_labels = []
+pred_labels = []
+
+if len(test_dataset) >0  and len(train_dataset) > 0:
+    test_accuracy. true_labels, pred_labels = evaluate_model(model, test_loader)
+    print(f"테스트 정확도: {test_accuracy: .2f}")
+
+    # confusion matrix 생성
+    cm = confusion_matrix(true_labels, pred_labels)
+    print("\n Confusion Matrix:")
+    print(cm)
+
+    # Confusion Matrix 시각화
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=['NORMAL', 'PNEUMONIA'],
+                yticklabels=['NORMAL', 'PNEUMONIA'],
+                cbar_kws={'label': 'Count'})
+    plt.xlabel('Predicted Label', fontsize=12)
+    plt.ylabel('True Label', fontsize=12)
+    plt.title('Confusion Matrix', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig('confusion_matrix.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    print("Confusion Matrix 저장: confusion_matrix.png")
+
+    # Classification Report
+    print("\n Classification Report: ")
+    class_names = ['NORMAL', 'PNEUMONIA']
+    print(classification_report(true_labels, pred_labels, target_names=class_names, zero_division=0))
+
+# 섹션 8: Grad-CAM 시각화 (XAI)
+
+
+if len(test_dataset) > 0 and len(train_dataset) > 0:
+
+    print("\nGrad-CAM이란?")
+    print("   - Gradient-weighted Class Activation Mapping")
+    print("   - 모델이 어느 부분을 보고 판단했는지 시각화")
+    print("   - 의료 AI의 신뢰성 향상에 필수")
+
+    # Grad-CAM 설정
+    target_layers = [model.layer4[-1]]  # ResNet18의 마지막 conv layer
+    grad_cam = GradCAM(model=model, target_layers=target_layers) # grad_cam 변수명으로 변경 (기존 cam과 충돌 방지)
+
+    # 테스트 이미지 선택 (각 클래스별 1장씩)
+    def get_sample_images(test_dataset, num_samples=1):
+        """각 클래스에서 샘플 이미지 추출"""
+        samples = {'NORMAL': [], 'PNEUMONIA': []}
+
+        for idx in range(len(test_dataset)):
+            img_tensor, label = test_dataset[idx]
+            class_name = 'NORMAL' if label == 0 else 'PNEUMONIA'
+
+            if len(samples[class_name]) < num_samples:
+                # 원본 이미지도 함께 저장 (경로를 통해 로드)
+                # TestDataset은 경로를 반환하지 않지만, 임시로 로드한 후 원본 경로를 찾을 수 없으므로
+                # 여기서는 Dataset 클래스에서 직접 경로를 가져와야 함 (단, test_dataset은 경로를 저장하지 않음)
+                # 이를 위해 임시로 test_dataset을 ChestXrayDatasetAdvanced처럼 return_path=True로 구현하는 것이 이상적이나,
+                # 초급 실습의 단순성을 위해, 여기서는 경로를 직접 로드할 수 있도록 test_dataset의 내부 images 리스트를 사용합니다.
+
+                # 주의: test_dataset이 random_split으로 생성된 경우 이 방식은 작동하지 않으나,
+                # 초급 코드는 random_split을 사용하지 않으므로, images 리스트를 사용합니다.
+
+                # 안전한 방법: Dataset 클래스 내부에 경로를 저장했는지 확인하고 사용
+                if hasattr(test_dataset, 'images'):
+                    img_path = test_dataset.images[idx]
+                    orig_img = Image.open(img_path).convert('RGB')
+                    samples[class_name].append((img_tensor, label, orig_img))
+
+            if all(len(v) >= num_samples for v in samples.values()):
+                break
+
+        return samples
+
+    # 샘플 이미지 가져오기
+    print("\n샘플 이미지 선택 중...")
+    sample_images = get_sample_images(test_dataset, num_samples=1)
+
+    # Grad-CAM 적용 및 시각화
+    # 샘플이 최소한 1개라도 있어야 시각화 진행
+    if sample_images['NORMAL'] and sample_images['PNEUMONIA']:
+        fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+
+        for row, (class_name, samples) in enumerate(sample_images.items()):
+            # 각 클래스에서 첫 번째 샘플을 사용
+            img_tensor, label, orig_img = samples[0]
+
+            # 모델 예측
+            model.eval()
+            input_tensor = img_tensor.unsqueeze(0).to(device)  # 배치 차원 추가
+
+            with torch.no_grad():
+                output = model(input_tensor)
+                pred_prob = torch.softmax(output, dim=1)
+                pred_class = torch.argmax(pred_prob, dim=1).item()
+                confidence = pred_prob[0][pred_class].item() * 100
+
+            # Grad-CAM 생성
+            targets = [ClassifierOutputTarget(pred_class)]
+            grayscale_cam = grad_cam(input_tensor=input_tensor, targets=targets)
+            grayscale_cam = grayscale_cam[0, :]
+
+            # 원본 이미지를 numpy 배열로 변환
+            orig_img_resized = orig_img.resize((224, 224))
+            rgb_img = np.array(orig_img_resized, dtype=np.float32) / 255.0 # 0~1 범위로 정규화
+
+            # CAM 오버레이
+            cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
+
+            # 시각화
+            # 1. 원본 이미지
+            axes[row, 0].imshow(orig_img_resized)
+            axes[row, 0].set_title(f'{class_name} - Original', fontsize=12, fontweight='bold')
+            axes[row, 0].axis('off')
+
+            # 2. Grad-CAM Heatmap
+            axes[row, 1].imshow(grayscale_cam, cmap='jet')
+            axes[row, 1].set_title('Grad-CAM Heatmap', fontsize=12, fontweight='bold')
+            axes[row, 1].axis('off')
+
+            # 3. 오버레이
+            axes[row, 2].imshow(cam_image)
+            pred_name = 'NORMAL' if pred_class == 0 else 'PNEUMONIA'
+            axes[row, 2].set_title(f'Prediction: {pred_name}\nConfidence: {confidence:.1f}%',
+                                  fontsize=12, fontweight='bold')
+            axes[row, 2].axis('off')
+
+        plt.tight_layout()
+        plt.savefig('gradcam_results.png', dpi=150, bbox_inches='tight')
+        plt.show()
+        print("Grad-CAM 결과 저장: gradcam_results.png")
+    else:
+        print("\nGrad-CAM 시각화를 위한 NORMAL/PNEUMONIA 샘플이 부족합니다.")
+
+else:
+    print("\n학습이 진행되지 않았거나 테스트 데이터셋이 비어있어 Grad-CAM을 건너뜁니다.")
+
+# 최종 요약
+
+print(f"   1. 데이터셋: Chest X-Ray Pneumonia")
+print(f"   2. 학습 데이터: {len(train_dataset)}장")
+print(f"   3. 테스트 데이터: {len(test_dataset)}장")
+print(f"   4. 모델: ResNet18 Transfer Learning")
+print(f"   5. 학습 에폭: {5 if len(train_dataset) > 0 else 0}")
+print(f"   6. 최종 테스트 정확도: {test_accuracy:.2f}%")
+print(f"\n생성된 파일:")
+if len(train_dataset) > 0:
+    print(f"   - sample_xray_images.png")
+    print(f"   - training_curves.png")
+    print(f"   - confusion_matrix.png")
+    print(f"   - gradcam_results.png")
+else:
+    print("   (학습이 진행되지 않아 파일이 생성되지 않았습니다.)")
+print("\n다음 단계:")
+print("   - 중고급 실습에서 더 고급 기법 학습")
+print("   - 모델 성능 개선 실험")
+print("   - 다양한 XAI 기법 탐색")
